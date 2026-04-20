@@ -243,3 +243,15 @@ POST /api/v1/mission/{mission_id}/fail
 POST /api/v1/replanning/local
 
 
+# IN PROGRESS
+RTSP Stream (Drone / Camera)
+        ↓
+OpenCV Capture
+        ↓
+Frame Extraction
+        ↓
+YOLO Inference(just for visualisation as of now)
+        ↓
+(Optional) Send to Analysis Pipeline(once we plus in, yolo of prev step is removed and analysis pipeline is used on the frames of RTSP)
+
+
