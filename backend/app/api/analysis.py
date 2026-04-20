@@ -11,6 +11,7 @@ from app.services.weather_analysis_service import WeatherAnalysisService
 from app.services.fusion_service import FusionService
 from app.utils.terrain_utils import generate_fake_elevation
 from app.services.weather_api_service import WeatherAPIService
+from app.services.session_service import session_service
 
 
 router = APIRouter(prefix="/analysis", tags=["Analysis"])
@@ -32,7 +33,7 @@ def analyze_image(payload: ImageAnalysisRequest) -> EnvironmentAnalysisResponse:
 
         weather_result = None
         if payload.include_weather:
-            lat, lon = 26.7271, 88.3953  # later replace with telemetry
+            lat, lon = 26.7271, 88.3953
             weather_data = weather_api.get_weather(lat, lon)
             weather_input = WeatherAnalysisInput(**weather_data)
             weather_result = weather_service.analyze(weather_input)
@@ -42,6 +43,7 @@ def analyze_image(payload: ImageAnalysisRequest) -> EnvironmentAnalysisResponse:
             terrain_analysis=terrain_result,
             weather_analysis=weather_result,
         )
+
         return fused
 
     except FileNotFoundError as exc:
@@ -50,3 +52,21 @@ def analyze_image(payload: ImageAnalysisRequest) -> EnvironmentAnalysisResponse:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(exc)}") from exc
+
+
+@router.post("/run-current", response_model=EnvironmentAnalysisResponse)
+def analyze_current() -> EnvironmentAnalysisResponse:
+    try:
+        setup = session_service.get_setup()
+
+        payload = ImageAnalysisRequest(
+            image_path=setup.image_path,
+            include_weather=setup.include_weather,
+        )
+
+        return analyze_image(payload)
+
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Current analysis failed: {str(exc)}") from exc

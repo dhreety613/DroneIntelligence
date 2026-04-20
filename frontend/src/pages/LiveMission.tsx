@@ -46,32 +46,23 @@ export default function LiveMission() {
     const loadInitialRoute = async () => {
       try {
         setLoading(true);
-        const res = await api.post<MissionRouteResponse>("/planning/route", {
-          image_path: "test.jpg",
-          start: { row: 0, col: 0 },
-          goal: { row: 19, col: 19 },
-          algorithm: "astar",
-          costmap: {
-            rows: 20,
-            cols: 20,
-            diagonal_movement: false,
-          },
-          bounds: {
-            north: 24.88,
-            south: 24.82,
-            east: 92.82,
-            west: 92.74,
-          },
-          include_weather: true,
-        });
+
+        // Create mission from stored backend setup
+        await api.post("/mission/create-from-setup");
+
+        // Get the original route from stored backend setup
+        const res = await api.post<MissionRouteResponse>("/planning/run-current");
+
         setRoute(res.data);
         setTimeout(() => setShowCards(true), 400);
       } catch (err) {
         console.error(err);
+        setAdjustmentInfo("Failed to load live mission. Make sure backend setup is done.");
       } finally {
         setLoading(false);
       }
     };
+
     loadInitialRoute();
   }, []);
 
@@ -81,7 +72,6 @@ export default function LiveMission() {
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => {
-        if (!activePath) return prev;
         if (prev >= activePath.length - 1) {
           clearInterval(interval);
           return prev;
@@ -102,27 +92,6 @@ export default function LiveMission() {
   const simulateAdjustment = async () => {
     try {
       setLoading(true);
-      await api.post("/mission/create", {
-        mission_id: "mission_001",
-        drone_id: "WORKER_01",
-        image_path: "test.jpg",
-        start_row: 0,
-        start_col: 0,
-        goal_row: 19,
-        goal_col: 19,
-        algorithm: "astar",
-        rows: 20,
-        cols: 20,
-        diagonal_movement: false,
-        include_weather: true,
-        bounds: {
-          north: 24.88,
-          south: 24.82,
-          east: 92.82,
-          west: 92.74,
-        },
-        notes: "Live mission",
-      }).catch(() => {});
 
       const replan = await api.post<ReplanResponse>("/replanning/local", {
         mission_id: "mission_001",
@@ -150,11 +119,11 @@ export default function LiveMission() {
     }
   };
 
-  // --- Ultra-Smooth Liquid Scroll ---
   useEffect(() => {
     if (showCards) {
       const scrollStep = () => {
-        const distanceToBottom = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+        const distanceToBottom =
+          document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
         if (distanceToBottom > 10) {
           window.scrollBy({ top: 3, behavior: "auto" });
           requestAnimationFrame(scrollStep);
@@ -165,10 +134,11 @@ export default function LiveMission() {
     }
   }, [showCards]);
 
-  // --- Style Constants ---
   const NEON_PURPLE = "#bc13fe";
-  const HEADER_GRADIENT = "linear-gradient(90deg, #ffffff 0%, #d8b4fe 50%, #bc13fe 100%)";
-  const GLASS_GRADIENT = "linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%)";
+  const HEADER_GRADIENT =
+    "linear-gradient(90deg, #ffffff 0%, #d8b4fe 50%, #bc13fe 100%)";
+  const GLASS_GRADIENT =
+    "linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%)";
 
   const animations = `
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
@@ -247,7 +217,9 @@ export default function LiveMission() {
     padding: "35px",
     borderRadius: "30px",
     opacity: showCards ? 1 : 0,
-    animation: showCards ? `slimyPop 2.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${index * 0.7}s forwards` : "none",
+    animation: showCards
+      ? `slimyPop 2.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${index * 0.7}s forwards`
+      : "none",
     boxShadow: "0 20px 50px rgba(0, 0, 0, 0.7)",
     transformOrigin: "bottom center",
   });
@@ -273,7 +245,6 @@ export default function LiveMission() {
     <div style={containerStyle}>
       <style>{animations}</style>
 
-      {/* FIXED TOP HEADER BAR */}
       <div style={headerBarStyle}>
         <h1 style={headerTextStyle}>LIVE MISSION</h1>
       </div>
@@ -287,7 +258,6 @@ export default function LiveMission() {
           margin: "0 auto",
         }}
       >
-        {/* MISSION CONTROLS CARD */}
         <div style={getGlassCardStyle(0)}>
           <div style={sectionLabelStyle}>// MISSION_CONTROLS</div>
 
@@ -307,34 +277,56 @@ export default function LiveMission() {
             {loading ? "PROCESSING..." : "SIMULATE ADJUSTMENT"}
           </button>
 
-          <div style={dataTextStyle}>Status: <b style={{ color: adjustedRoute.length > 0 ? NEON_PURPLE : "#fff" }}>
-            {adjustedRoute.length > 0 ? "ADJUSTED_ACTIVE" : "FOLLOWING_ORIGINAL"}
-          </b></div>
-          <div style={dataTextStyle}>Current Step: <b>{currentIndex + 1}</b></div>
-          
-          <div style={{...dataTextStyle, fontSize: '12px', marginTop: '20px', opacity: 0.6, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '15px'}}>
+          <div style={dataTextStyle}>
+            Status:{" "}
+            <b style={{ color: adjustedRoute.length > 0 ? NEON_PURPLE : "#fff" }}>
+              {adjustedRoute.length > 0 ? "ADJUSTED_ACTIVE" : "FOLLOWING_ORIGINAL"}
+            </b>
+          </div>
+          <div style={dataTextStyle}>
+            Current Step: <b>{currentIndex + 1}</b>
+          </div>
+
+          <div
+            style={{
+              ...dataTextStyle,
+              fontSize: "12px",
+              marginTop: "20px",
+              opacity: 0.6,
+              borderTop: "1px solid rgba(255,255,255,0.1)",
+              paddingTop: "15px",
+            }}
+          >
             <div style={sectionLabelStyle}>// ADJUSTMENT_LOG</div>
             {adjustmentInfo}
           </div>
 
-          <div style={{ marginTop: "30px", padding: '20px', background: 'rgba(0,0,0,0.3)', borderRadius: '15px' }}>
-            <div style={{...sectionLabelStyle, marginBottom: '10px'}}>// LEGEND</div>
-            <p style={{fontSize: '11px', color: '#3b82f6'}}>● ORIGINAL_PATH_LINK</p>
-            <p style={{fontSize: '11px', color: '#ef4444'}}>● ADJUSTED_PATH_LINK</p>
-            <p style={{fontSize: '11px', color: '#4ade80'}}>● LIVE_DRONE_MARKER</p>
+          <div
+            style={{
+              marginTop: "30px",
+              padding: "20px",
+              background: "rgba(0,0,0,0.3)",
+              borderRadius: "15px",
+            }}
+          >
+            <div style={{ ...sectionLabelStyle, marginBottom: "10px" }}>// LEGEND</div>
+            <p style={{ fontSize: "11px", color: "#3b82f6" }}>● ORIGINAL_PATH_LINK</p>
+            <p style={{ fontSize: "11px", color: "#ef4444" }}>● ADJUSTED_PATH_LINK</p>
+            <p style={{ fontSize: "11px", color: "#4ade80" }}>● LIVE_DRONE_MARKER</p>
           </div>
         </div>
 
-        {/* LIVE MAP CARD */}
-        <div style={{...getGlassCardStyle(1), minHeight: "600px"}}>
+        <div style={{ ...getGlassCardStyle(1), minHeight: "600px" }}>
           <div style={sectionLabelStyle}>// LIVE_SPATIAL_TELEMETRY</div>
-          <div style={{
-            borderRadius: "20px", 
-            overflow: "hidden", 
-            border: "1px solid rgba(255,255,255,0.1)",
-            height: "calc(100% - 40px)",
-            boxShadow: `inset 0 0 30px #000`
-          }}>
+          <div
+            style={{
+              borderRadius: "20px",
+              overflow: "hidden",
+              border: "1px solid rgba(255,255,255,0.1)",
+              height: "calc(100% - 40px)",
+              boxShadow: `inset 0 0 30px #000`,
+            }}
+          >
             {route && (
               <LiveMissionMap
                 originalPath={route.geo_path}

@@ -10,40 +10,44 @@ export default function Analysis() {
     setData(null);
     setShowCards(false);
     setLoading(true);
+
     try {
-      const res = await api.post("/analysis/image", {
-        image_path: "C:/Users/armyt/Desktop/Drone/backend/test.jpg",
-        include_weather: true,
-      });
+      // Uses the setup you saved once in backend /docs
+      const res = await api.post("/analysis/run-current");
       setData(res.data);
       setTimeout(() => setShowCards(true), 400);
     } catch (err) {
       console.error(err);
-      alert("Error running analysis");
+      alert("Backend not connected or setup not done");
     } finally {
       setLoading(false);
     }
   };
 
-  // --- Liquid Smooth Scroll ---
   useEffect(() => {
     if (showCards) {
       const scrollStep = () => {
-        const distanceToBottom = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+        const distanceToBottom =
+          document.documentElement.scrollHeight -
+          window.innerHeight -
+          window.scrollY;
+
         if (distanceToBottom > 10) {
           window.scrollBy({ top: 3, behavior: "auto" });
           requestAnimationFrame(scrollStep);
         }
       };
+
       const timeout = setTimeout(() => requestAnimationFrame(scrollStep), 800);
       return () => clearTimeout(timeout);
     }
   }, [showCards]);
 
-  // --- Styles ---
   const NEON_PURPLE = "#bc13fe";
-  const HEADER_GRADIENT = "linear-gradient(90deg, #ffffff 0%, #d8b4fe 50%, #bc13fe 100%)";
-  const GLASS_GRADIENT = "linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%)";
+  const HEADER_GRADIENT =
+    "linear-gradient(90deg, #ffffff 0%, #d8b4fe 50%, #bc13fe 100%)";
+  const GLASS_GRADIENT =
+    "linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%)";
 
   const animations = `
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
@@ -69,7 +73,7 @@ export default function Analysis() {
   const containerStyle: React.CSSProperties = {
     background: "#000",
     minHeight: "100vh",
-    padding: "160px 20px 100px 20px", // Extra top padding to clear the fixed header
+    padding: "160px 20px 100px 20px",
     color: "#fff",
     fontFamily: "'Orbitron', sans-serif",
     overflowX: "hidden",
@@ -90,7 +94,7 @@ export default function Analysis() {
   };
 
   const headerTextStyle: React.CSSProperties = {
-    color: "#000", // Black text on the gradient bar
+    color: "#000",
     fontSize: "24px",
     fontWeight: 900,
     letterSpacing: "8px",
@@ -128,13 +132,15 @@ export default function Analysis() {
     padding: "40px",
     borderRadius: "30px",
     opacity: showCards ? 1 : 0,
-    animation: showCards ? `slimyPop 2.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${index * 0.7}s forwards` : "none",
+    animation: showCards
+      ? `slimyPop 2.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${index * 0.7}s forwards`
+      : "none",
     boxShadow: "0 20px 50px rgba(0, 0, 0, 0.7)",
     transformOrigin: "bottom center",
   });
 
   const sectionLabelStyle: React.CSSProperties = {
-    color: "#d8b4fe", // Lavender labels
+    color: "#d8b4fe",
     fontSize: "11px",
     letterSpacing: "4px",
     marginBottom: "20px",
@@ -153,13 +159,12 @@ export default function Analysis() {
     <div style={containerStyle}>
       <style>{animations}</style>
 
-      {/* FIXED TOP HEADER BAR */}
       <div style={headerBarStyle}>
         <h1 style={headerTextStyle}>DRONE INTEL ANALYSIS</h1>
       </div>
 
-      <button 
-        style={btnStyle} 
+      <button
+        style={btnStyle}
         onClick={runAnalysis}
         onMouseEnter={(e) => {
           e.currentTarget.style.boxShadow = `0 0 50px ${NEON_PURPLE}`;
@@ -177,52 +182,79 @@ export default function Analysis() {
 
       {data && (
         <div style={cardContainer}>
-          {/* OBSTACLE DATA */}
           <div style={getGlassCardStyle(0)}>
             <div style={sectionLabelStyle}>// MODULE_OBSTACLE_SCAN</div>
-            <div style={dataTextStyle}>Threat Count: <b>{data.obstacle_analysis.obstacle_count}</b></div>
-            <div style={{...dataTextStyle, fontSize: '14px', marginTop: '10px', opacity: 0.6}}>
-              Objects: {data.obstacle_analysis.detections.map((d: any) => d.label).join(" | ")}
+            <div style={dataTextStyle}>
+              Threat Count: <b>{data.obstacle_analysis.obstacle_count}</b>
+            </div>
+            <div
+              style={{
+                ...dataTextStyle,
+                fontSize: "14px",
+                marginTop: "10px",
+                opacity: 0.6,
+              }}
+            >
+              Objects:{" "}
+              {data.obstacle_analysis.detections.map((d: any) => d.label).join(" | ")}
             </div>
           </div>
 
-          {/* TERRAIN DATA */}
           <div style={getGlassCardStyle(1)}>
             <div style={sectionLabelStyle}>// MODULE_TERRAIN_MAP</div>
-            <div style={dataTextStyle}>Surface: <b>{data.terrain_analysis.terrain_class}</b></div>
-            <div style={dataTextStyle}>Difficulty: <b>{data.terrain_analysis.difficulty_score}</b></div>
+            <div style={dataTextStyle}>
+              Surface: <b>{data.terrain_analysis.terrain_class}</b>
+            </div>
+            <div style={dataTextStyle}>
+              Difficulty: <b>{data.terrain_analysis.difficulty_score}</b>
+            </div>
           </div>
 
-          {/* WEATHER DATA */}
           <div style={getGlassCardStyle(2)}>
             <div style={sectionLabelStyle}>// MODULE_ENV_STATS</div>
-            <div style={dataTextStyle}>Severity: <b>{data.weather_analysis.severity_level}</b></div>
-            <div style={dataTextStyle}>Risk: <b>{data.weather_analysis.risk_score}</b></div>
+            <div style={dataTextStyle}>
+              Severity: <b>{data.weather_analysis.severity_level}</b>
+            </div>
+            <div style={dataTextStyle}>
+              Risk: <b>{data.weather_analysis.risk_score}</b>
+            </div>
           </div>
 
-          {/* RISK SUMMARY */}
           <div style={getGlassCardStyle(3)}>
             <div style={sectionLabelStyle}>// MODULE_RISK_COMPUTE</div>
-            <div style={dataTextStyle}>Combined Score: <b>{data.combined_risk_score}</b></div>
-            <div style={{
-              fontSize: '24px', 
-              fontWeight: 900, 
-              marginTop: '20px', 
-              color: data.feasible ? NEON_PURPLE : "#ff3e3e",
-              textShadow: data.feasible ? `0 0 15px ${NEON_PURPLE}` : 'none'
-            }}>
+            <div style={dataTextStyle}>
+              Combined Score: <b>{data.combined_risk_score}</b>
+            </div>
+            <div
+              style={{
+                fontSize: "24px",
+                fontWeight: 900,
+                marginTop: "20px",
+                color: data.feasible ? NEON_PURPLE : "#ff3e3e",
+                textShadow: data.feasible ? `0 0 15px ${NEON_PURPLE}` : "none",
+              }}
+            >
               {data.feasible ? ">> STATUS: CLEAR FOR TAKEOFF" : ">> STATUS: GROUNDED"}
             </div>
           </div>
 
-          {/* FINAL RECOMMENDATION */}
-          <div style={{
-            ...getGlassCardStyle(4),
-            border: `1px solid ${NEON_PURPLE}`,
-            background: "linear-gradient(135deg, rgba(188, 19, 254, 0.25) 0%, rgba(255, 255, 255, 0.05) 100%)"
-          }}>
-            <div style={{...sectionLabelStyle, color: '#fff'}}>// NEURAL_OUTPUT</div>
-            <div style={{...dataTextStyle, fontSize: '22px', fontStyle: 'italic', lineHeight: 1.6}}>
+          <div
+            style={{
+              ...getGlassCardStyle(4),
+              border: `1px solid ${NEON_PURPLE}`,
+              background:
+                "linear-gradient(135deg, rgba(188, 19, 254, 0.25) 0%, rgba(255, 255, 255, 0.05) 100%)",
+            }}
+          >
+            <div style={{ ...sectionLabelStyle, color: "#fff" }}>// NEURAL_OUTPUT</div>
+            <div
+              style={{
+                ...dataTextStyle,
+                fontSize: "22px",
+                fontStyle: "italic",
+                lineHeight: 1.6,
+              }}
+            >
               "{data.recommended_action}"
             </div>
           </div>

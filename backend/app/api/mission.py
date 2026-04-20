@@ -9,6 +9,8 @@ from app.schemas.mission import (
     MissionBounds,
 )
 from app.services.mission_execution_service import MissionExecutionService
+from app.services.session_service import session_service
+from app.schemas.mission import MissionBounds as SchemaBounds
 
 router = APIRouter(prefix="/mission", tags=["Mission"])
 
@@ -56,7 +58,10 @@ def create_mission(payload: CreateMissionRequest) -> MissionResponse:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Mission creation failed: {str(exc)}") from exc
+        raise HTTPException(
+            status_code=500,
+            detail=f"Mission creation failed: {str(exc)}"
+        ) from exc
 
 
 @router.get("/{mission_id}", response_model=MissionResponse)
@@ -110,3 +115,45 @@ def fail_mission(mission_id: str, reason: str | None = None) -> MissionResponse:
         return _to_mission_response(mission)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/create-from-setup", response_model=MissionResponse)
+def create_from_setup() -> MissionResponse:
+    try:
+        setup = session_service.get_setup()
+
+        # If mission already exists, just return it
+        try:
+            existing = mission_service.get_mission(setup.mission_id)
+            return _to_mission_response(existing)
+        except ValueError:
+            pass
+
+        payload = CreateMissionRequest(
+            mission_id=setup.mission_id,
+            drone_id=setup.drone_id,
+            image_path=setup.image_path,
+            start_row=setup.start_row,
+            start_col=setup.start_col,
+            goal_row=setup.goal_row,
+            goal_col=setup.goal_col,
+            algorithm=setup.algorithm,
+            rows=setup.rows,
+            cols=setup.cols,
+            diagonal_movement=setup.diagonal_movement,
+            include_weather=setup.include_weather,
+            bounds=SchemaBounds(**setup.bounds.model_dump()),
+        )
+
+        mission = mission_service.create_mission(payload)
+        return _to_mission_response(mission)
+
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Mission creation from setup failed: {str(exc)}"
+        ) from exc

@@ -8,6 +8,9 @@ from app.api.planning import router as planning_router
 from app.api.mission import router as mission_router
 from app.api.replanning import router as replanning_router
 from app.core.config import settings
+from app.api.setup import router as setup_router
+from app.api.rtsp import router as rtsp_router
+
 
 app = FastAPI(title=settings.APP_NAME)
 
@@ -25,6 +28,8 @@ app.include_router(analysis_router, prefix=settings.API_PREFIX)
 app.include_router(planning_router, prefix=settings.API_PREFIX)
 app.include_router(mission_router, prefix=settings.API_PREFIX)
 app.include_router(replanning_router, prefix=settings.API_PREFIX)
+app.include_router(setup_router, prefix="/api/v1")
+app.include_router(rtsp_router, prefix="/api/v1")
 
 
 @app.get("/")
